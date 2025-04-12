@@ -256,12 +256,6 @@ class AdminDashboard:
         self.entry_count_update.delete(0, tk.END)
         self.entry_count_update.insert(0, item_values[3])
     
-    def __del__(self):
-        try:
-            self.master.destroy()
-        except:
-            pass
-
 
 # Entry Point
 def open_admin_dashboard():

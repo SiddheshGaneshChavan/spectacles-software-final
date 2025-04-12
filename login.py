@@ -88,10 +88,6 @@ class LoginApp:
             if 'conn' in locals() and conn.is_connected():
                 conn.close()
 
-    def launch_user_dashboard(self):
-        user_dashboard_root = tk.Tk()
-        user_dashboard_root.mainloop()
-
 def launch_login():
     root = tk.Tk()
     app = LoginApp(root)
@@ -119,12 +115,6 @@ def show_splash_and_launch_login():
 
     splash_root.after(100, load)
     splash_root.mainloop()
-    
-    def __del__(self):
-        try:
-            self.master.destroy()
-        except:
-            pass
 
 
 # --- Main Execution ---

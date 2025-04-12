@@ -435,12 +435,6 @@ class UserDashboard:
         self.master.destroy()
         login.launch_login()
 
-    def __del__(self):
-        try:
-            self.master.destroy()
-        except:
-            pass
-
 
 def open_user_dashboard():
     root = tk.Tk()
