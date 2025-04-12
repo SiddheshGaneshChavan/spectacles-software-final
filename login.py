@@ -119,6 +119,13 @@ def show_splash_and_launch_login():
 
     splash_root.after(100, load)
     splash_root.mainloop()
+    
+    def __del__(self):
+        try:
+            self.master.destroy()
+        except:
+            pass
+
 
 # --- Main Execution ---
 if __name__ == "__main__":

@@ -395,6 +395,22 @@ class UserDashboard:
             
             conn.commit()
             messagebox.showinfo("Success", "Customer data inserted successfully.")
+            self.name_entry.delete(0, tk.END)
+            self.phone_entry.delete(0, tk.END)
+            self.transaction.delete(0, tk.END)
+            self.date_entry.delete(0, tk.END)
+            self.dob_entry.delete(0, tk.END)
+            self.lens_entry.delete(0, tk.END)
+            self.uniqueno_add.delete(0, tk.END)
+            self.total_amt.delete(0, tk.END)
+            self.discount.delete(0, tk.END)
+            self.advance_amt.delete(0, tk.END)
+            self.balance_amt.delete(0, tk.END)
+            self.frame_combobox.set('')
+            self.type_combobox.set('')
+            for row in self.entries:
+                for entry in row:
+                    entry.delete(0, tk.END)
             self.refresh_data()
         except ValueError as ve:
             messagebox.showerror("Invalid Input",f"{ve}")
@@ -413,6 +429,7 @@ class UserDashboard:
                     conn.close()
             except:
                 pass
+
     def logout(self):
         import login
         self.master.destroy()
