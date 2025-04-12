@@ -2,7 +2,10 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from mysql.connector import IntegrityError, Error  # 🔧 Added general `Error` import
 import datetime
+from collections import defaultdict
 from db_config import get_connection
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 current_date = datetime.datetime.today().strftime('%Y-%m-%d')
 
@@ -68,6 +71,65 @@ class AdminDashboard:
         ttk.Button(self.frame_update, text="Update Stock", command=self.update_stock).grid(row=4, column=0, columnspan=2, pady=10)
 
         self.tree2 = self._create_treeview(self.frame_update, 5, bind_select=True)
+                # --- Monthly ---
+        self.monthly = ttk.Frame(notebook, padding=10)
+        notebook.add(self.monthly, text="Monthly Sales")
+
+        self.daily = ttk.Frame(notebook, padding=10)
+        notebook.add(self.daily, text="Daily Sales")
+        self.load_sales_charts()
+
+    def fetch_sales_data(self):
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT order_date, total_amount FROM customers")
+        data = cursor.fetchall()
+        conn.close()
+
+        daily_sales = defaultdict(int)
+        monthly_sales = defaultdict(int)
+
+        for date_obj, amount in data:
+            try: 
+                daily_key = date_obj.strftime("%Y-%m-%d")
+                monthly_key = date_obj.strftime("%Y-%m")
+                daily_sales[daily_key] += amount
+                monthly_sales[monthly_key] += amount
+            except Exception as e:
+                print(f"Date format error: {e} for value {date_obj}")
+        
+        return daily_sales, monthly_sales
+    
+
+    def load_sales_charts(self):
+        daily_sales, monthly_sales = self.fetch_sales_data()
+        daily_fig, ax1 = plt.subplots(figsize=(9, 4))
+        daily_dates = list(daily_sales.keys())
+        daily_totals = list(daily_sales.values())
+        ax1.plot(daily_dates, daily_totals, marker='o', linestyle='-', color='green')
+        ax1.set_title('Daily Sales')
+        ax1.set_xlabel('Date')
+        ax1.set_ylabel('Total Sales (₹)')
+        ax1.tick_params(axis='x', rotation=45)
+
+        daily_canvas = FigureCanvasTkAgg(daily_fig, master=self.daily)
+        daily_canvas.draw()
+        daily_canvas.get_tk_widget().pack(fill='both', expand=True)
+
+        # --- Monthly Sales Chart ---
+        monthly_fig, ax2 = plt.subplots(figsize=(9, 4))
+        monthly_labels = list(monthly_sales.keys())
+        monthly_totals = list(monthly_sales.values())
+        ax2.bar(monthly_labels, monthly_totals, color='skyblue')
+        ax2.set_title('Monthly Sales')
+        ax2.set_xlabel('Month')
+        ax2.set_ylabel('Total Sales (₹)')
+        ax2.tick_params(axis='x', rotation=45)
+
+        monthly_canvas = FigureCanvasTkAgg(monthly_fig, master=self.monthly)
+        monthly_canvas.draw()
+        monthly_canvas.get_tk_widget().pack(fill='both', expand=True)
+
 
     def _create_labeled_entry(self, parent, text, row):
         ttk.Label(parent, text=text).grid(row=row, column=0, sticky='w', padx=5, pady=5)

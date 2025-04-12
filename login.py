@@ -104,7 +104,7 @@ def show_splash_and_launch_login():
     splash_root.geometry("400x200+500+250")
     splash_root.configure(bg="white")
 
-    tk.Label(splash_root, text="Loading Omkar Optics...", font=("Helvetica", 16, "bold"), bg="white").pack(pady=40)
+    tk.Label(splash_root, text="Loading Omkar Optics Software...", font=("Helvetica", 16, "bold"), bg="white").pack(pady=40)
     
     progress = ttk.Progressbar(splash_root, orient="horizontal", length=300, mode="determinate")
     progress.pack(pady=10)
