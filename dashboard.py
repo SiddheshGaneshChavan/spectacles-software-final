@@ -55,11 +55,13 @@ class UserDashboard:
 
         self.tab1 = tk.Frame(notebook)
         self.tab2 = tk.Frame(notebook)
+        self.tab3 = tk.Frame(notebook)
         notebook.add(self.tab1, text="Customer Details")
         notebook.add(self.tab2, text="Update Details")
-
+        notebook.add(self.tab3, text="Details of Spectacles")
         self.build_customer_tab()
         self.update_customer_tab()
+        self.details_spec_tab()
 
         tk.Button(self.master, text="Logout", font=("Arial", 12), bg="#0085FF", fg="white", command=self.logout).grid(row=2, column=0, pady=10)
 
@@ -71,7 +73,7 @@ class UserDashboard:
             entry.config(state="readonly")
         entry.grid(row=row, column=column * 2 + 1, padx=10, pady=5)
         return entry
-    
+
     def update_customer_tab(self):
         tab2 = self.tab2
         tk.Label(tab2, text="Bill No:", font=("Arial", 12)).grid(row=0, column=0, padx=10, pady=5, sticky="w")
@@ -91,15 +93,9 @@ class UserDashboard:
 
         columns = ("billno", "name", "phone", "balance")
         self.tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=10)
-        self.tree.heading("billno", text="Billno")
-        self.tree.heading("name", text="Name")
-        self.tree.heading("phone", text="Phone No")
-        self.tree.heading("balance", text="Balance Amount")
-
-        self.tree.column("billno", anchor="center", width=100)
-        self.tree.column("name", anchor="center", width=150)
-        self.tree.column("phone", anchor="center", width=120)
-        self.tree.column("balance", anchor="center", width=130)
+        for col in columns: 
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=100, anchor=tk.CENTER)
     
         vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=vsb.set)
@@ -167,7 +163,6 @@ class UserDashboard:
 
     def build_customer_tab(self):
         tab = self.tab1
-
         self.transaction = self.build_labeled_entry(tab, "Bill no", 0, 0)
         self.date_entry = self.build_labeled_entry(tab, "Date of Order", 1, 0, readonly=True)
         self.date_entry.config(state="normal")
@@ -205,7 +200,69 @@ class UserDashboard:
         self.build_billing_fields(tab)
 
         tk.Button(tab, text="Insert Customer Data", font=("Arial", 12), bg="green", fg="white", command=self.insert_data).grid(row=12, column=0, columnspan=2, padx=10, pady=5)
+    
+    def details_spec_tab(self):
+        tab3 = self.tab3
+        form_frame = tk.Frame(tab3)
+        form_frame.grid(row=0, column=0, sticky="nw", padx=10, pady=10)
 
+        self.bill_no_search = self.build_labeled_entry(form_frame, "Bill No", 0, 0)
+        self.phone_no_search = self.build_labeled_entry(form_frame, "Phone No", 1, 0)
+        self.unique_no_search = self.build_labeled_entry(form_frame, "Unique No", 2, 0)
+
+        search_btn = tk.Button(
+        form_frame, text="Search", font=("Arial", 12), bg="green", fg="white", command=self.search
+        )
+        search_btn.grid(row=3, column=0, columnspan=2, pady=5, sticky="w")
+
+        tree_frame2 = tk.Frame(tab3)
+        tree_frame2.grid(row=1, column=0, columnspan=6, padx=10, pady=10, sticky="nsew")
+
+        tab3.grid_rowconfigure(1, weight=1)
+        tab3.grid_columnconfigure(0, weight=1)
+
+        columns = ("ID", "Name", "Phone", "Bill No", "Eye Type", "RE SPH", "RE CYL", "RE Axis", "LE SPH", "LE CYL", "LE Axis")
+        self.tree2 = ttk.Treeview(tree_frame2, columns=columns, show="headings", height=10)
+
+        for col in columns:
+            self.tree2.heading(col, text=col)
+            self.tree2.column(col, width=100, anchor="center")
+
+        vsb2 = ttk.Scrollbar(tree_frame2, orient="vertical", command=self.tree2.yview)
+        self.tree2.configure(yscrollcommand=vsb2.set)
+        vsb2.pack(side="right", fill="y")
+        self.tree2.pack(fill="both", expand=True)
+
+    def search(self):
+        bill_no = self.bill_no_search.get().strip()
+        phone_no = self.phone_no_search.get().strip()
+        unique_no = self.unique_no_search.get().strip()
+        for i in self.tree2.get_children():
+            self.tree2.delete(i)
+        if not bill_no and not phone_no and not unique_no:
+            messagebox.showwarning("Input Required", "Please enter at least one search field.")
+            return
+        
+        try:   
+            conn=get_connection()   
+            cursor = conn.cursor()
+            query = """
+    SELECT customers.id, customers.name, customers.phone_no, customers.bill_no, 
+           eye_prescriptions.eye_type, eye_prescriptions.re_sph, eye_prescriptions.re_cyl, 
+           eye_prescriptions.re_axis, eye_prescriptions.le_sph, eye_prescriptions.le_cyl, 
+           eye_prescriptions.le_axis
+    FROM customers
+    LEFT JOIN eye_prescriptions ON customers.id = eye_prescriptions.customer_id
+    LEFT JOIN Spectacles_no ON customers.id = Spectacles_no.customer_id
+    WHERE customers.phone_no = %s OR customers.bill_no = %s OR Spectacles_no.unique_no = %s
+    """
+            cursor.execute(query, (phone_no, bill_no, unique_no))
+            rows = cursor.fetchall()
+            for row in rows:
+                self.tree2.insert("", "end", values=row)
+            conn.close()
+        except Exception as e:
+            print(f"Error: {e}")
     def build_table(self, tab):
         table_frame = tk.Frame(tab, bg="white")
         table_frame.grid(row=8, column=1, columnspan=3, padx=10, pady=10)
