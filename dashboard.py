@@ -362,9 +362,25 @@ class UserDashboard:
             le_sph_read = parse_float(self.entries[1][3].get())
             le_cyl_read = parse_float(self.entries[1][4].get())
             le_axis_read = parse_float(self.entries[1][5].get())
+            
             if not (name and phone_no and bill_no and frame and frame_type and lens and unique_no and total_amount):
                 messagebox.showerror("Error", "All fields must be filled!")
                 return
+            
+            if not (phone_no.isdigit() and len(phone_no)==10):
+                messagebox.showerror("Invalid Phone Number", "Please enter a valid 10-digit phone number!")
+                return
+            payable_amount = total_amount - discount_amount
+            balance_amount = payable_amount - advance_amount
+            if total_amount < 0 or discount_amount < 0 or advance_amount < 0:
+                messagebox.showerror("Invalid Input", "Amounts cannot be negative.")
+            
+            if discount_amount > total_amount:
+                messagebox.showerror("Invalid Discount", "Discount cannot exceed total amount.")
+
+            if advance_amount > payable_amount:
+                messagebox.showerror("Invalid Advance", "Advance exceeds payable amount.")
+            
             cursor.execute('''
             INSERT INTO customers 
             (name, phone_no, bill_no, order_date, dob, Frame, Type, total_amount, discount, advance_amount, balance_amount, Lens, payment)
