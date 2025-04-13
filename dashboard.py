@@ -236,7 +236,7 @@ class UserDashboard:
     def search(self):
         bill_no = self.bill_no_search.get().strip()
         phone_no = self.phone_no_search.get().strip()
-        unique_no = self.unique_no_search.get().strip()
+        unique_no = self.unique_no_search.get().strip() 
         self.tree2.delete(*self.tree2.get_children())
         if not bill_no and not phone_no and not unique_no:
             messagebox.showwarning("Input Required", "Please enter at least one search field.")
