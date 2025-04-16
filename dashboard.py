@@ -24,26 +24,6 @@ class UserDashboard:
         except ValueError:
             return 0
 
-    def get_options(self, column, frame=None):
-        """Get distinct options from DB with caching."""
-        if frame:
-            if frame in self.type_cache:
-                return self.type_cache[frame]
-        elif self.frame_cache is not None:
-            return self.frame_cache
-
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            if frame:
-                cursor.execute("SELECT DISTINCT Type FROM Stocks WHERE Frame = %s AND Count > 0", (frame,))
-                result = [row[0] for row in cursor.fetchall()]
-                self.type_cache[frame] = result
-            else:
-                cursor.execute(f"SELECT DISTINCT {column} FROM Stocks WHERE Count > 0")
-                result = [row[0] for row in cursor.fetchall()]
-                self.frame_cache = result
-        return result
-
     def setup_ui(self):
         self.master.columnconfigure(0, weight=1)
         self.master.rowconfigure(1, weight=1)
@@ -160,7 +140,6 @@ class UserDashboard:
             messagebox.showerror("Database Error", f"Error loading customers: {e}")
         self.master.after(5000, self.load_customers)
 
-
     def build_customer_tab(self):
         tab = self.tab1
         self.transaction = self.build_labeled_entry(tab, "Bill no", 0, 0)
@@ -200,6 +179,41 @@ class UserDashboard:
         self.build_billing_fields(tab)
 
         tk.Button(tab, text="Insert Customer Data", font=("Arial", 12), bg="green", fg="white", command=self.insert_data).grid(row=12, column=0, columnspan=2, padx=10, pady=5)
+    def get_options(self,column,frame=None):
+        if frame:
+            if frame in self.type_cache:
+                return self.type_cache[frame]
+        elif self.frame_cache is not None:
+            return self.frame_cache
+        with get_connection() as conn:
+            cursor=conn.cursor()
+            if frame:
+                cursor.execute("SELECT DISTINCT Type FROM Stocks WHERE Frame = %s AND Count > 0", (frame,))
+                result = [row[0] for row in cursor.fetchall()]
+                self.type_cache[frame] = result
+            else:
+                cursor.execute(f"SELECT DISTINCT {column} FROM Stocks WHERE Count > 0")
+                result = [row[0] for row in cursor.fetchall()]
+                self.frame_cache = result
+        print(result)
+        return result
+    
+    def refresh_data(self):
+        self.frame_cache=None
+        self.type_cache.clear()
+        self.frame_combobox["values"] = self.get_options("Frame")
+        self.frame_combobox.set("Select Frame")
+        self.type_combobox.set("Select Type")
+        self.type_combobox["values"] = []
+    
+    def update_type_options(self, event):
+        try:
+            selected_frame = self.frame_combobox.get()
+            types = self.get_options("Type", selected_frame)
+            self.type_combobox["values"] = types or ["No Types Available"]
+            self.type_combobox.set(types[0] if types else "No Types Available")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error updating type options: {e}")
     
     def details_spec_tab(self):
         tab3 = self.tab3
@@ -311,19 +325,6 @@ class UserDashboard:
         self.balance_amt.delete(0, tk.END)
         self.balance_amt.insert(0, f"{balance:.2f}")
         self.balance_amt.config(state="readonly")
-
-    def update_type_options(self, event):
-        selected_frame = self.frame_combobox.get()
-        types = self.get_options("Type", selected_frame)
-        self.type_combobox["values"] = types or ["No Types Available"]
-        self.type_combobox.current(0)
-
-    def refresh_data(self):
-        self.frame_combobox["values"] = self.get_options("Frame")
-        selected_frame = self.frame_combobox.get()
-        self.type_combobox["values"] = self.get_options("Type", selected_frame)
-        self.frame_combobox.set("Select Frame")
-        self.type_combobox.set("Select Type")
 
     def insert_data(self):
         try:

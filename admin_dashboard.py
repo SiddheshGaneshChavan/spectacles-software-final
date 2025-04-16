@@ -1,15 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from mysql.connector import IntegrityError, Error  # 🔧 Added general `Error` import
-import datetime
+from datetime import datetime
 from collections import defaultdict
 from db_config import get_connection
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
-current_date = datetime.datetime.today().strftime('%Y-%m-%d')
-
-
+from dateutil.relativedelta import relativedelta
+current_date = datetime.today().strftime('%Y-%m-%d')
 class AdminDashboard:
     def __init__(self, master):
         self.master = master
@@ -79,6 +77,7 @@ class AdminDashboard:
         notebook.add(self.daily, text="Daily Sales")
         self.load_sales_charts()
 
+
     def fetch_sales_data(self):
         conn = get_connection()
         cursor = conn.cursor()
@@ -89,15 +88,28 @@ class AdminDashboard:
         daily_sales = defaultdict(int)
         monthly_sales = defaultdict(int)
 
+    # Ensure both sides of the comparison are dates
+        today = datetime.today().date()
+        seven_months_ago = (datetime.today() - relativedelta(months=7)).date()
+
         for date_obj, amount in data:
-            try: 
-                daily_key = date_obj.strftime("%Y-%m-%d")
-                monthly_key = date_obj.strftime("%Y-%m")
-                daily_sales[daily_key] += amount
-                monthly_sales[monthly_key] += amount
+            try:
+            # If date_obj is a string, parse it
+                if isinstance(date_obj, str):
+                    date_obj = datetime.strptime(date_obj, "%Y-%m-%d").date()
+
+            # If it's a datetime, extract the date part
+                if isinstance(date_obj, datetime):
+                    date_obj = date_obj.date()
+
+                if seven_months_ago <= date_obj <= today:
+                    daily_key = date_obj.strftime("%Y-%m-%d")
+                    monthly_key = date_obj.strftime("%Y-%m")
+                    daily_sales[daily_key] += amount
+                    monthly_sales[monthly_key] += amount
             except Exception as e:
                 print(f"Date format error: {e} for value {date_obj}")
-        
+    
         return daily_sales, monthly_sales
     
 
