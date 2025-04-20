@@ -255,7 +255,7 @@ class UserDashboard:
         tab3.grid_rowconfigure(1, weight=1)
         tab3.grid_columnconfigure(0, weight=1)
 
-        columns = ("ID", "Name", "Phone", "Bill No", "Eye Type", "RE SPH", "RE CYL", "RE Axis", "LE SPH", "LE CYL", "LE Axis")
+        columns = ("ID", "Name", "Phone", "Bill No","Remark", "Eye Type", "RE SPH", "RE CYL", "RE Axis", "LE SPH", "LE CYL", "LE Axis")
         self.tree2 = ttk.Treeview(tree_frame2, columns=columns, show="headings", height=10)
 
         for col in columns:
@@ -280,7 +280,7 @@ class UserDashboard:
             conn=get_connection()   
             cursor = conn.cursor()
             query = """
-    SELECT customers.id, customers.name, customers.phone_no, customers.bill_no, 
+    SELECT customers.id, customers.name, customers.phone_no, customers.bill_no,customers.remark, 
            eye_prescriptions.eye_type, eye_prescriptions.re_sph, eye_prescriptions.re_cyl, 
            eye_prescriptions.re_axis, eye_prescriptions.le_sph, eye_prescriptions.le_cyl, 
            eye_prescriptions.le_axis
@@ -392,6 +392,11 @@ class UserDashboard:
             if not (phone_no.isdigit() and len(phone_no)==10):
                 messagebox.showerror("Invalid Phone Number", "Please enter a valid 10-digit phone number!")
                 return
+            
+            if not remark:
+                messagebox.showerror("Put Remark", "Please enter a Remark")
+                return
+
             payable_amount = total_amount - discount_amount
             balance_amount = payable_amount - advance_amount
             if total_amount < 0 or discount_amount < 0 or advance_amount < 0:
