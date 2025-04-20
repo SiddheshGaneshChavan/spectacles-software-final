@@ -37,6 +37,7 @@ CREATE TABLE `customers` (
   `balance_amount` decimal(10,2) NOT NULL,
   `Lens` varchar(100) NOT NULL,
   `payment` varchar(50) DEFAULT NULL,
+  `remark` varchar(255) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `bill_no` (`bill_no`),
   KEY `Frame` (`Frame`,`Type`),
