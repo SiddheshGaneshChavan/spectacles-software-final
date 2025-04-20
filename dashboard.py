@@ -60,6 +60,7 @@ class UserDashboard:
         bill_numbers = self.fetch_bill_numbers()
         self.frame_up_combobox = ttk.Combobox(tab2,values=bill_numbers,font=("Arial", 12), width=28)
         self.frame_up_combobox.grid(row=0, column=1, padx=10, pady=5)
+        self.frame_up_combobox.bind("<<ComboboxSelected>>", self.on_bill_selected)
 
         tk.Button(tab2, text="Update Billno", font=("Arial", 12), bg="green", fg="white",command=self.update_balance).grid(row=0, column=3, columnspan=2, padx=10, pady=5)
         tk.Button(tab2, text="Refresh Button for Billno", font=("Arial", 12), bg="blue", fg="white",command=self.refresh_combobox2).grid(row=0, column=5, columnspan=2, padx=10, pady=5)
@@ -84,6 +85,26 @@ class UserDashboard:
 
 
         self.load_customers()
+    def on_bill_selected(self, event=None):
+        selected_bill = self.frame_up_combobox.get()
+        if not selected_bill:
+            return
+
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT balance_amount FROM customers WHERE bill_no = %s", (selected_bill,))
+        result = cursor.fetchone()
+        conn.close()
+
+        if result:
+            balance_amt = result[0]
+            self.balance_up_amt.config(state="normal")
+            self.balance_up_amt.delete(0, tk.END)
+            self.balance_up_amt.insert(0, str(balance_amt))
+            self.balance_up_amt.config(state="readonly")
+        else:
+            print(f"No balance found for Bill No {selected_bill}")
+
 
     def refresh_combobox2(self):
         self.frame_up_combobox["values"] = self.fetch_bill_numbers()
@@ -177,8 +198,8 @@ class UserDashboard:
 
         self.build_table(tab)
         self.build_billing_fields(tab)
-
-        tk.Button(tab, text="Insert Customer Data", font=("Arial", 12), bg="green", fg="white", command=self.insert_data).grid(row=12, column=0, columnspan=2, padx=10, pady=5)
+        self.remark= self.build_labeled_entry(tab, "Remark", 12, 0)
+        tk.Button(tab, text="Insert Customer Data", font=("Arial", 12), bg="green", fg="white", command=self.insert_data).grid(row=13, column=0, columnspan=2, padx=10, pady=5)
     def get_options(self,column,frame=None):
         if frame:
             if frame in self.type_cache:
@@ -195,7 +216,6 @@ class UserDashboard:
                 cursor.execute(f"SELECT DISTINCT {column} FROM Stocks WHERE Count > 0")
                 result = [row[0] for row in cursor.fetchall()]
                 self.frame_cache = result
-        print(result)
         return result
     
     def refresh_data(self):
@@ -339,6 +359,7 @@ class UserDashboard:
             frame_type = self.type_combobox.get()
             lens = self.lens_entry.get()
             unique_no = self.uniqueno_add.get()
+            remark=self.remark.get()
             total_amount = self.parse_float(self.total_amt.get())
             discount_amount = self.parse_float(self.discount.get())
             advance_amount = self.parse_float(self.advance_amt.get())
@@ -375,18 +396,21 @@ class UserDashboard:
             balance_amount = payable_amount - advance_amount
             if total_amount < 0 or discount_amount < 0 or advance_amount < 0:
                 messagebox.showerror("Invalid Input", "Amounts cannot be negative.")
+                return
             
             if discount_amount > total_amount:
                 messagebox.showerror("Invalid Discount", "Discount cannot exceed total amount.")
+                return
 
             if advance_amount > payable_amount:
                 messagebox.showerror("Invalid Advance", "Advance exceeds payable amount.")
+                return
             
             cursor.execute('''
             INSERT INTO customers 
-            (name, phone_no, bill_no, order_date, dob, Frame, Type, total_amount, discount, advance_amount, balance_amount, Lens, payment)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (name, phone_no, bill_no, order_date, dob, frame, frame_type, total_amount, discount_amount, advance_amount, balance_amount, lens, payment_status))
+            (name, phone_no, bill_no, order_date, dob, Frame, Type, total_amount, discount, advance_amount, balance_amount, Lens,payment,remark)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)
+        ''', (name, phone_no, bill_no, order_date, dob, frame, frame_type, total_amount, discount_amount, advance_amount, balance_amount, lens, payment_status,remark))
 
             customer_id = cursor.lastrowid  # Get inserted ID
 
@@ -424,6 +448,7 @@ class UserDashboard:
             self.balance_amt.delete(0, tk.END)
             self.frame_combobox.set('')
             self.type_combobox.set('')
+            self.remark.delete(0,tk.END)
             for row in self.entries:
                 for entry in row:
                     entry.delete(0, tk.END)
