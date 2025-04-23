@@ -1,25 +1,19 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from mysql.connector import IntegrityError, Error
+from mysql.connector import IntegrityError, Error  # 🔧 Added general `Error` import
 from datetime import datetime
-from db_config import get_connection
-import gc  # For garbage collection
-import matplotlib.pyplot as plt
 from collections import defaultdict
+from db_config import get_connection
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from dateutil.relativedelta import relativedelta
-
 current_date = datetime.today().strftime('%Y-%m-%d')
-
 class AdminDashboard:
     def __init__(self, master):
         self.master = master
         self.master.title("Stock Management")
         self.master.geometry("750x450")
         self.master.configure(bg='#f0f0f0')
-
-        # Memory cleanup on window close
-        self.master.protocol("WM_DELETE_WINDOW", self.close_app)
 
         style = ttk.Style()
         style.configure("TLabel", font=("Arial", 12))
@@ -29,11 +23,8 @@ class AdminDashboard:
         self.create_widgets()
         self.fetch_data()
         ttk.Button(self.master, text="Back to Login", command=self.back_to_login).pack(pady=10)
-
-    def close_app(self):
-        self.master.destroy()
-        gc.collect()  # Force garbage collection
-
+  
+  
     def back_to_login(self):
         self.master.destroy()
         import login 
@@ -43,7 +34,7 @@ class AdminDashboard:
         notebook = ttk.Notebook(self.master)
         notebook.pack(pady=10, fill='both', expand=True)
 
-        # Add Stock Tab
+        # --- Add Stock Tab ---
         self.frame_add = ttk.Frame(notebook, padding=10)
         notebook.add(self.frame_add, text="Add Stock")
 
@@ -58,9 +49,10 @@ class AdminDashboard:
         self.entry_date_add.grid(row=3, column=1, padx=5, pady=5)
 
         ttk.Button(self.frame_add, text="Add Stock", command=self.add_stock).grid(row=4, column=0, columnspan=2, pady=10)
+
         self.tree = self._create_treeview(self.frame_add, 5)
 
-        # Update Stock Tab
+        # --- Update Stock Tab ---
         self.frame_update = ttk.Frame(notebook, padding=10)
         notebook.add(self.frame_update, text="Update Stock")
 
@@ -75,89 +67,39 @@ class AdminDashboard:
         self.entry_date_update.grid(row=3, column=1, padx=5, pady=5)
 
         ttk.Button(self.frame_update, text="Update Stock", command=self.update_stock).grid(row=4, column=0, columnspan=2, pady=10)
+
         self.tree2 = self._create_treeview(self.frame_update, 5, bind_select=True)
+                # --- Monthly ---
+        self.monthly = ttk.Frame(notebook, padding=10)
+        notebook.add(self.monthly, text="Monthly Sales")
 
-        self.frame_daily_sales = ttk.Frame(notebook, padding=10)
-        notebook.add(self.frame_daily_sales, text="Daily Sales")
-
-        ttk.Label(self.frame_daily_sales, text="Generate Daily Sales Report", font=("Arial", 14)).pack(pady=10)
-        ttk.Button(self.frame_daily_sales, text="Generate Report", command=self.generate_daily_sales).pack(pady=10)
-
-        self.frame_monthly_sales = ttk.Frame(notebook, padding=10)
-        notebook.add(self.frame_monthly_sales, text="Monthly Sales")
-
-        ttk.Label(self.frame_monthly_sales, text="Generate Monthly Sales Report", font=("Arial", 14)).pack(pady=10)
-        ttk.Button(self.frame_monthly_sales, text="Generate Report", command=self.generate_monthly_sales).pack(pady=10)
-
-    def generate_daily_sales(self):
-        daily_sales, _ = self.fetch_sales_data()
-        if not daily_sales:
-            messagebox.showinfo("Info", "No daily sales data found.")
-            return
-
-        fig, ax = plt.subplots(figsize=(6, 4))
-        keys = sorted(daily_sales.keys())
-        values = [daily_sales[k] for k in keys]
-        ax.bar(keys, values)
-        ax.set_title("Daily Sales")
-        ax.set_ylabel("Amount")
-        ax.tick_params(axis='x', rotation=45)
-
-        self._show_chart(fig)
-        del daily_sales
-
-    def generate_monthly_sales(self):
-        _, monthly_sales = self.fetch_sales_data()
-        if not monthly_sales:
-            messagebox.showinfo("Info", "No monthly sales data found.")
-            return
-
-        fig, ax = plt.subplots(figsize=(6, 4))
-        keys = sorted(monthly_sales.keys())
-        values = [monthly_sales[k] for k in keys]
-        ax.bar(keys, values, color='green')
-        ax.set_title("Monthly Sales")
-        ax.set_ylabel("Amount")
-        ax.tick_params(axis='x', rotation=45)
-
-        self._show_chart(fig)
-        del monthly_sales
-
-    def _show_chart(self, fig):
-        top = tk.Toplevel(self.master)
-        top.title("Sales Chart")
-        canvas = FigureCanvasTkAgg(fig, master=top)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill='both', expand=True)
-
-        def on_close():
-            plt.close(fig) 
-            top.destroy() 
-        top.protocol("WM_DELETE_WINDOW", on_close)
+        self.daily = ttk.Frame(notebook, padding=10)
+        notebook.add(self.daily, text="Daily Sales")
+        self.load_sales_charts()
 
 
     def fetch_sales_data(self):
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT order_date, total_amount FROM customers")
-            data = cursor.fetchall()
-            conn.close()
-        except Error as e:
-            messagebox.showerror("Database Error", str(e))
-            return {}, {}
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT order_date, total_amount FROM customers")
+        data = cursor.fetchall()
+        conn.close()
 
         daily_sales = defaultdict(int)
         monthly_sales = defaultdict(int)
 
+    # Ensure both sides of the comparison are dates
         today = datetime.today().date()
         seven_months_ago = (datetime.today() - relativedelta(months=7)).date()
 
         for date_obj, amount in data:
             try:
+            # If date_obj is a string, parse it
                 if isinstance(date_obj, str):
                     date_obj = datetime.strptime(date_obj, "%Y-%m-%d").date()
-                elif isinstance(date_obj, datetime):
+
+            # If it's a datetime, extract the date part
+                if isinstance(date_obj, datetime):
                     date_obj = date_obj.date()
 
                 if seven_months_ago <= date_obj <= today:
@@ -167,8 +109,39 @@ class AdminDashboard:
                     monthly_sales[monthly_key] += amount
             except Exception as e:
                 print(f"Date format error: {e} for value {date_obj}")
-        
+    
         return daily_sales, monthly_sales
+    
+
+    def load_sales_charts(self):
+        daily_sales, monthly_sales = self.fetch_sales_data()
+        daily_fig, ax1 = plt.subplots(figsize=(9, 4))
+        daily_dates = list(daily_sales.keys())
+        daily_totals = list(daily_sales.values())
+        ax1.plot(daily_dates, daily_totals, marker='o', linestyle='-', color='green')
+        ax1.set_title('Daily Sales')
+        ax1.set_xlabel('Date')
+        ax1.set_ylabel('Total Sales (₹)')
+        ax1.tick_params(axis='x', rotation=45)
+
+        daily_canvas = FigureCanvasTkAgg(daily_fig, master=self.daily)
+        daily_canvas.draw()
+        daily_canvas.get_tk_widget().pack(fill='both', expand=True)
+
+        # --- Monthly Sales Chart ---
+        monthly_fig, ax2 = plt.subplots(figsize=(9, 4))
+        monthly_labels = list(monthly_sales.keys())
+        monthly_totals = list(monthly_sales.values())
+        ax2.bar(monthly_labels, monthly_totals, color='skyblue')
+        ax2.set_title('Monthly Sales')
+        ax2.set_xlabel('Month')
+        ax2.set_ylabel('Total Sales (₹)')
+        ax2.tick_params(axis='x', rotation=45)
+
+        monthly_canvas = FigureCanvasTkAgg(monthly_fig, master=self.monthly)
+        monthly_canvas.draw()
+        monthly_canvas.get_tk_widget().pack(fill='both', expand=True)
+
 
     def _create_labeled_entry(self, parent, text, row):
         ttk.Label(parent, text=text).grid(row=row, column=0, sticky='w', padx=5, pady=5)
@@ -202,7 +175,7 @@ class AdminDashboard:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM Stocks")
             rows = cursor.fetchall()
-        except Error as e:
+        except Error as e:  # 🔧 Gracefully handle DB errors
             messagebox.showerror("Database Error", str(e))
             return
         finally:
@@ -230,10 +203,10 @@ class AdminDashboard:
             cursor.execute("INSERT INTO Stocks (Frame, Type, Count, Date) VALUES (%s, %s, %s, %s)",
                            (frame, type_, int(count), date))
             conn.commit()
-            if cursor.rowcount > 0:
-                messagebox.showinfo("Success", "Stock added successfully.")
+            if cursor.rowcount>0:
+                messagebox.showinfo("Success","Stock added successfully.")
             else:
-                messagebox.showwarning("Warning", "No stock was added.")
+                messagebox.showwarning("Warning","No stock was added.")
             self.fetch_data()
         except IntegrityError:
             messagebox.showerror("Duplicate Error", "Frame & Type combination already exists.")
@@ -242,6 +215,7 @@ class AdminDashboard:
         finally:
             if conn and conn.is_connected():
                 conn.close()
+            self.fetch_data()
 
     def update_stock(self):
         selected_item = self.tree2.selection()
@@ -277,6 +251,7 @@ class AdminDashboard:
         finally:
             if conn and conn.is_connected():
                 conn.close()
+            self.fetch_data()
 
     def on_row_selected(self, event):
         selected_item = self.tree2.selection()
@@ -286,11 +261,13 @@ class AdminDashboard:
         item_values = self.tree2.item(selected_item)["values"]
         self.entry_frame_update.delete(0, tk.END)
         self.entry_frame_update.insert(0, item_values[1])
+
         self.entry_type_update.delete(0, tk.END)
         self.entry_type_update.insert(0, item_values[2])
+
         self.entry_count_update.delete(0, tk.END)
         self.entry_count_update.insert(0, item_values[3])
-
+    
 
 # Entry Point
 def open_admin_dashboard():

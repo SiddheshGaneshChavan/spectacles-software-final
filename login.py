@@ -11,6 +11,7 @@ from dashboard import open_user_dashboard
 from admin_dashboard import open_admin_dashboard
 from mysql.connector import Error
 
+
 class LoginApp:
     def __init__(self, root):
         self.root = root
@@ -20,13 +21,28 @@ class LoginApp:
 
         self.setup_ui()
 
+    def __del__(self):
+        print("LoginApp instance deleted")
+        try:
+            if self.username_entry:
+                self.username_entry.delete(0, tk.END)
+            if self.password_entry:
+                self.password_entry.delete(0, tk.END)
+        except:
+            pass
+        self.username_entry = None
+        self.password_entry = None
+
     def setup_ui(self):
         # Load background
         base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
         img_path = os.path.join(base_dir, "Bg1.png")
-        img = Image.open(img_path).resize((500, 500), Image.Resampling.LANCZOS)
-        self.bg_img = ImageTk.PhotoImage(img)
-        tk.Label(self.root, image=self.bg_img).grid(row=0, column=0)
+        try:
+            img = Image.open(img_path).resize((500, 500), Image.Resampling.LANCZOS)
+            self.bg_img = ImageTk.PhotoImage(img)
+            tk.Label(self.root, image=self.bg_img).grid(row=0, column=0)
+        except Exception as e:
+            tk.Label(self.root, text="Background image not found", bg="white", fg="red").grid(row=0, column=0)
 
         # Frame for login
         frame = tk.Frame(self.root, bg="#D9D9D9", height=350, width=300)
@@ -39,6 +55,7 @@ class LoginApp:
         tk.Label(frame, text="Username", fg="black", bg="#D9D9D9", font=("", 12, "bold")).grid(row=1, column=0, sticky="w", padx=30)
         self.username_entry = tk.Entry(frame, fg="black", bg="white", font=("", 16, "bold"), width=20)
         self.username_entry.grid(row=2, column=0, sticky="nwe", padx=30)
+        self.username_entry.focus()  # Auto-focus
 
         # Password
         tk.Label(frame, text="Password", fg="black", bg="#D9D9D9", font=("", 12, "bold")).grid(row=3, column=0, sticky="w", padx=30, pady=(10, 0))
@@ -74,11 +91,13 @@ class LoginApp:
 
             if user and verify_password(password, user[0]):
                 messagebox.showinfo("Success", "Login successful. Redirecting...")
-                time.sleep(1)
                 self.root.destroy()
+                del username,password
                 if user[1] == "admin":
+                    del user
                     open_admin_dashboard()
                 else:
+                    del user
                     open_user_dashboard()
             else:
                 messagebox.showerror("Error", "Invalid username or password")
@@ -88,20 +107,28 @@ class LoginApp:
             if 'conn' in locals() and conn.is_connected():
                 conn.close()
 
+
 def launch_login():
     root = tk.Tk()
     app = LoginApp(root)
     root.mainloop()
 
+
 # Splash screen with progress bar
 def show_splash_and_launch_login():
     splash_root = tk.Tk()
     splash_root.overrideredirect(True)
-    splash_root.geometry("400x200+500+250")
+
+    width, height = 400, 200
+    screen_width = splash_root.winfo_screenwidth()
+    screen_height = splash_root.winfo_screenheight()
+    x = (screen_width // 2) - (width // 2)
+    y = (screen_height // 2) - (height // 2)
+    splash_root.geometry(f"{width}x{height}+{x}+{y}")
     splash_root.configure(bg="white")
 
     tk.Label(splash_root, text="Loading Omkar Optics Software...", font=("Helvetica", 16, "bold"), bg="white").pack(pady=40)
-    
+
     progress = ttk.Progressbar(splash_root, orient="horizontal", length=300, mode="determinate")
     progress.pack(pady=10)
 
