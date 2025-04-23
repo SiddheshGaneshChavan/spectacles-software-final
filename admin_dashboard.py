@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 from mysql.connector import IntegrityError, Error
 from datetime import datetime
 from db_config import get_connection
-import gc  # For garbage collection
+import gc
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -17,8 +17,6 @@ class AdminDashboard:
         self.master.title("Stock Management")
         self.master.geometry("750x450")
         self.master.configure(bg='#f0f0f0')
-
-        # Memory cleanup on window close
         self.master.protocol("WM_DELETE_WINDOW", self.close_app)
 
         style = ttk.Style()
@@ -32,10 +30,11 @@ class AdminDashboard:
 
     def close_app(self):
         self.master.destroy()
-        gc.collect()  # Force garbage collection
+        gc.collect()
 
     def back_to_login(self):
         self.master.destroy()
+        gc.collect()
         import login 
         login.launch_login()
 
@@ -77,12 +76,14 @@ class AdminDashboard:
         ttk.Button(self.frame_update, text="Update Stock", command=self.update_stock).grid(row=4, column=0, columnspan=2, pady=10)
         self.tree2 = self._create_treeview(self.frame_update, 5, bind_select=True)
 
+        # Daily Sales Tab
         self.frame_daily_sales = ttk.Frame(notebook, padding=10)
         notebook.add(self.frame_daily_sales, text="Daily Sales")
 
         ttk.Label(self.frame_daily_sales, text="Generate Daily Sales Report", font=("Arial", 14)).pack(pady=10)
         ttk.Button(self.frame_daily_sales, text="Generate Report", command=self.generate_daily_sales).pack(pady=10)
 
+        # Monthly Sales Tab
         self.frame_monthly_sales = ttk.Frame(notebook, padding=10)
         notebook.add(self.frame_monthly_sales, text="Monthly Sales")
 
@@ -104,7 +105,6 @@ class AdminDashboard:
         ax.tick_params(axis='x', rotation=45)
 
         self._show_chart(fig)
-        del daily_sales
 
     def generate_monthly_sales(self):
         _, monthly_sales = self.fetch_sales_data()
@@ -121,7 +121,6 @@ class AdminDashboard:
         ax.tick_params(axis='x', rotation=45)
 
         self._show_chart(fig)
-        del monthly_sales
 
     def _show_chart(self, fig):
         top = tk.Toplevel(self.master)
@@ -131,21 +130,30 @@ class AdminDashboard:
         canvas.get_tk_widget().pack(fill='both', expand=True)
 
         def on_close():
-            plt.close(fig) 
-            top.destroy() 
+            plt.close(fig)
+            top.destroy()
+            gc.collect()
+
         top.protocol("WM_DELETE_WINDOW", on_close)
 
-
     def fetch_sales_data(self):
+        conn = None
+        cursor = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("SELECT order_date, total_amount FROM customers")
             data = cursor.fetchall()
-            conn.close()
         except Error as e:
             messagebox.showerror("Database Error", str(e))
             return {}, {}
+        finally:
+            if cursor:
+                cursor.close()
+            if conn and conn.is_connected():
+                conn.close()
+
+        del conn,cursor
 
         daily_sales = defaultdict(int)
         monthly_sales = defaultdict(int)
@@ -159,15 +167,12 @@ class AdminDashboard:
                     date_obj = datetime.strptime(date_obj, "%Y-%m-%d").date()
                 elif isinstance(date_obj, datetime):
                     date_obj = date_obj.date()
-
                 if seven_months_ago <= date_obj <= today:
-                    daily_key = date_obj.strftime("%Y-%m-%d")
-                    monthly_key = date_obj.strftime("%Y-%m")
-                    daily_sales[daily_key] += amount
-                    monthly_sales[monthly_key] += amount
+                    daily_sales[date_obj.strftime("%Y-%m-%d")] += amount
+                    monthly_sales[date_obj.strftime("%Y-%m")] += amount
             except Exception as e:
                 print(f"Date format error: {e} for value {date_obj}")
-        
+
         return daily_sales, monthly_sales
 
     def _create_labeled_entry(self, parent, text, row):
@@ -197,6 +202,8 @@ class AdminDashboard:
         return tree
 
     def fetch_data(self):
+        conn = None
+        cursor = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
@@ -206,6 +213,8 @@ class AdminDashboard:
             messagebox.showerror("Database Error", str(e))
             return
         finally:
+            if cursor:
+                cursor.close()
             if conn and conn.is_connected():
                 conn.close()
 
@@ -213,6 +222,7 @@ class AdminDashboard:
             trv.delete(*trv.get_children())
             for row in rows:
                 trv.insert("", "end", values=row)
+        del conn,cursor
 
     def add_stock(self):
         frame = self.entry_frame_add.get()
@@ -224,24 +234,26 @@ class AdminDashboard:
             messagebox.showerror("Input Error", "Please enter valid Frame, Type, and numeric Count.")
             return
 
+        conn = None
+        cursor = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("INSERT INTO Stocks (Frame, Type, Count, Date) VALUES (%s, %s, %s, %s)",
                            (frame, type_, int(count), date))
             conn.commit()
-            if cursor.rowcount > 0:
-                messagebox.showinfo("Success", "Stock added successfully.")
-            else:
-                messagebox.showwarning("Warning", "No stock was added.")
+            messagebox.showinfo("Success", "Stock added successfully.")
             self.fetch_data()
         except IntegrityError:
             messagebox.showerror("Duplicate Error", "Frame & Type combination already exists.")
         except Error as e:
             messagebox.showerror("Database Error", str(e))
         finally:
+            if cursor:
+                cursor.close()
             if conn and conn.is_connected():
                 conn.close()
+        del cursor,conn
 
     def update_stock(self):
         selected_item = self.tree2.selection()
@@ -261,22 +273,24 @@ class AdminDashboard:
         item_values = self.tree2.item(selected_item)["values"]
         stock_id = item_values[0]
 
+        conn = None
+        cursor = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("UPDATE Stocks SET Frame=%s, Type=%s, Count=%s, Date=%s WHERE No=%s",
                            (frame, type_, int(count), date, stock_id))
             conn.commit()
-            if cursor.rowcount > 0:
-                messagebox.showinfo("Success", "Stock updated successfully.")
-            else:
-                messagebox.showwarning("Warning", "No changes were made.")
+            messagebox.showinfo("Success", "Stock updated successfully.")
             self.fetch_data()
         except Error as e:
             messagebox.showerror("Database Error", str(e))
         finally:
+            if cursor:
+                cursor.close()
             if conn and conn.is_connected():
                 conn.close()
+        del conn,cursor
 
     def on_row_selected(self, event):
         selected_item = self.tree2.selection()
