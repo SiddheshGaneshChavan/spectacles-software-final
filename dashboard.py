@@ -4,17 +4,21 @@ from tkcalendar import DateEntry
 from datetime import date
 from db_config import get_connection
 from mysql.connector import IntegrityError,InterfaceError,Error
-
+import gc
 class UserDashboard:
     def __init__(self, master):
         self.master = master
         self.master.title("User Dashboard")
         self.master.attributes('-fullscreen', True)
         self.master.bind("<Escape>", lambda e: self.master.attributes("-fullscreen", False))
-
+        self.master.protocol("WM_DELETE_WINDOW", self.close_app)
         self.frame_cache = None
         self.type_cache = {}
         self.setup_ui()
+    
+    def close_app(self):
+        self.master.destroy()
+        gc.collect()
 
     # Utility Functions
     @staticmethod
@@ -477,8 +481,9 @@ class UserDashboard:
                 pass
 
     def logout(self):
-        import login
         self.master.destroy()
+        gc.collect()
+        import login
         login.launch_login()
 
 
