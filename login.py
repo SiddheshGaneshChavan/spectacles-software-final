@@ -90,25 +90,39 @@ class LoginApp:
 
         try:
             conn = get_connection()
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT password, type FROM users WHERE username = %s", (username,))
+            with conn.cursor(buffered=True) as cursor:
+                cursor.execute("SELECT password, type, failed_attempts, last_failed_login FROM users WHERE username = %s", (username,))
                 user = cursor.fetchone()
-
-            if user and verify_password(password, user[0]):
-                messagebox.showinfo("Success", "Login successful. Redirecting...")
-                self.root.destroy()
-                if user[1] == "admin":
-                    open_admin_dashboard()
+                if not user:
+                    messagebox.showerror("Error", "Invalid username or password")
+                    return
+                stored_password, user_type, failed_attempts, last_failed_login = user
+                if failed_attempts >= 5:
+                    messagebox.showerror("Account Locked", "Too many failed login attempts. Please contact admin.")
+                    return
+                if verify_password(password, user[0]):
+                    cursor.execute("UPDATE users SET failed_attempts = 0, last_failed_login = NULL WHERE username = %s", (username,))
+                    conn.commit()
+                    messagebox.showinfo("Success", "Login successful. Redirecting...")
+                    self.root.destroy()
+                    if user_type == "admin":
+                        open_admin_dashboard()
+                    else:
+                        open_user_dashboard()
                 else:
-                    open_user_dashboard()
-            else:
-                messagebox.showerror("Error", "Invalid username or password")
+                    cursor.execute("""
+                    UPDATE users 
+                    SET failed_attempts = failed_attempts + 1, last_failed_login = NOW() 
+                    WHERE username = %s
+                """, (username,))
+                    conn.commit()
+                    remaining = 5 - (failed_attempts + 1)
+                    messagebox.showerror("Error", f"Invalid credentials. {remaining} attempt(s) left.")
         except Error as e:
             messagebox.showerror("Database Error", f"Error: {str(e)}")
         finally:
             if 'conn' in locals() and conn.is_connected():
                 conn.close()
-
 
 def launch_login():
     root = tk.Tk()
