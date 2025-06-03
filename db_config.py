@@ -4,7 +4,7 @@ DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
     'password': 'root',
-    'database': 'users',
+    'database': 'omkaroptics',
     'port': 3360
 }
 

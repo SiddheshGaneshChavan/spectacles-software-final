@@ -10,8 +10,6 @@ from utils import verify_password
 from dashboard import open_user_dashboard
 from admin_dashboard import open_admin_dashboard
 from mysql.connector import Error
-
-
 class LoginApp:
     def __init__(self, root):
         self.root = root
@@ -45,7 +43,7 @@ class LoginApp:
             tk.Label(self.root, text="Background image not found", bg="white", fg="red").grid(row=0, column=0)
 
         # Frame for login
-        frame = tk.Frame(self.root, bg="#D9D9D9", height=350, width=300)
+        frame = tk.Frame(self.root, bg="#D9D9D9", height=350, width=320)
         frame.grid(row=0, column=1, padx=40)
 
         tk.Label(frame, text="Welcome Back!\nLogin to Account", fg="black", bg="#D9D9D9",
@@ -57,16 +55,23 @@ class LoginApp:
         self.username_entry.grid(row=2, column=0, sticky="nwe", padx=30)
         self.username_entry.focus()  # Auto-focus
 
-        # Password
-        tk.Label(frame, text="Password", fg="black", bg="#D9D9D9", font=("", 12, "bold")).grid(row=3, column=0, sticky="w", padx=30, pady=(10, 0))
-        self.password_entry = tk.Entry(frame, fg="black", bg="white", font=("", 16, "bold"), width=20, show="*")
-        self.password_entry.grid(row=4, column=0, sticky="nwe", padx=30, pady=5)
+        # Password Label
+        tk.Label(frame, text="Password", fg="black", bg="#D9D9D9", font=("", 12, "bold")).grid(
+        row=3, column=0, sticky="w", padx=30, pady=(10, 0)
+        )
 
-        # Toggle password
-        self.toggle_btn = tk.Button(frame, text='Show', command=self.toggle_password, bg="white", fg="black", font=("", 10))
-        self.toggle_btn.grid(row=4, column=1, sticky='w', pady=5)
+        # Password Entry + Toggle Button inside one frame
+        password_frame = tk.Frame(frame, bg="#D9D9D9")
+        password_frame.grid(row=4, column=0, sticky="w", padx=30, pady=5)
 
-        # Login Button
+        self.password_entry = tk.Entry(password_frame, fg="black", bg="white", font=("", 16, "bold"),
+                               width=15, show="*")
+        self.password_entry.pack(side="left", fill="x", expand=True)
+
+        self.toggle_btn = tk.Button(password_frame, text='Show', command=self.toggle_password,
+                            bg="white", fg="black", font=("", 10), relief="flat")
+        self.toggle_btn.pack(side="left", padx=(5, 0))
+
         tk.Button(frame, text="Login", font=("", 16, "bold"), height=1, width=10, bg="#0085FF", fg="white",
                   cursor="hand2", command=self.login_user).grid(row=5, column=0, sticky="ne", pady=20, padx=35)
 
@@ -92,12 +97,9 @@ class LoginApp:
             if user and verify_password(password, user[0]):
                 messagebox.showinfo("Success", "Login successful. Redirecting...")
                 self.root.destroy()
-                del username,password
                 if user[1] == "admin":
-                    del user
                     open_admin_dashboard()
                 else:
-                    del user
                     open_user_dashboard()
             else:
                 messagebox.showerror("Error", "Invalid username or password")
@@ -110,6 +112,7 @@ class LoginApp:
 
 def launch_login():
     root = tk.Tk()
+    root.iconbitmap("./sunglasses.ico")
     app = LoginApp(root)
     root.mainloop()
 
@@ -132,15 +135,15 @@ def show_splash_and_launch_login():
     progress = ttk.Progressbar(splash_root, orient="horizontal", length=300, mode="determinate")
     progress.pack(pady=10)
 
-    def load():
-        for i in range(0, 101, 5):
-            progress['value'] = i
-            splash_root.update_idletasks()
-            time.sleep(0.05)
-        splash_root.destroy()
-        launch_login()
+    def load_progress(value=0):
+        if value <= 100:
+            progress['value'] = value
+            splash_root.after(50, load_progress, value + 5)  # Schedule next increment
+        else:
+            splash_root.destroy()
+            launch_login()
 
-    splash_root.after(100, load)
+    splash_root.after(100, load_progress)
     splash_root.mainloop()
 
 
