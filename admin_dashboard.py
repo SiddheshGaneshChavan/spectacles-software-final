@@ -50,31 +50,11 @@ class AdminDashboard:
         self.entry_type_add = self._create_labeled_entry(self.frame_add, "Type:", 1)
         self.entry_count_add = self._create_labeled_entry(self.frame_add, "Count:", 2)
 
-        ttk.Label(self.frame_add, text="Date:").grid(row=3, column=0, sticky='w', padx=5, pady=5)
-        self.entry_date_add = ttk.Entry(self.frame_add, width=30)
-        self.entry_date_add.insert(0, current_date)
-        self.entry_date_add.config(state="readonly")
-        self.entry_date_add.grid(row=3, column=1, padx=5, pady=5)
-
         ttk.Button(self.frame_add, text="Add Stock", command=self.add_stock).grid(row=4, column=0, columnspan=2, pady=10)
         self.tree = self._create_treeview(self.frame_add, 5)
 
         # Update Stock Tab
-        self.frame_update = ttk.Frame(notebook, padding=10)
-        notebook.add(self.frame_update, text="Update Stock")
 
-        self.entry_frame_update = self._create_labeled_entry(self.frame_update, "Frame:", 0)
-        self.entry_type_update = self._create_labeled_entry(self.frame_update, "Type:", 1)
-        self.entry_count_update = self._create_labeled_entry(self.frame_update, "Count:", 2)
-
-        ttk.Label(self.frame_update, text="Date:").grid(row=3, column=0, sticky='w', padx=5, pady=5)
-        self.entry_date_update = ttk.Entry(self.frame_update, width=30)
-        self.entry_date_update.insert(0, current_date)
-        self.entry_date_update.config(state="readonly")
-        self.entry_date_update.grid(row=3, column=1, padx=5, pady=5)
-
-        ttk.Button(self.frame_update, text="Update Stock", command=self.update_stock).grid(row=4, column=0, columnspan=2, pady=10)
-        self.tree2 = self._create_treeview(self.frame_update, 5, bind_select=True)
 
         # Daily Sales Tab
         self.frame_daily_sales = ttk.Frame(notebook, padding=10)
@@ -142,7 +122,7 @@ class AdminDashboard:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT order_date, total_amount FROM customers")
+            cursor.execute("SELECT frame, type, date, COUNT(*) AS count_per_date FROM stock_items WHERE customer_id IS NULL GROUP BY frame, type, date ORDER BY frame, type, date;")
             data = cursor.fetchall()
         except Error as e:
             messagebox.showerror("Database Error", str(e))
@@ -182,7 +162,7 @@ class AdminDashboard:
         return entry
 
     def _create_treeview(self, parent, row, bind_select=False):
-        columns = ("No", "Frame", "Type", "Count", "Date")
+        columns = ("Frame", "Type", "Date","Count")
         tree = ttk.Treeview(parent, columns=columns, show="headings", height=5)
         for col in columns:
             tree.heading(col, text=col)
@@ -207,7 +187,7 @@ class AdminDashboard:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM Stocks")
+            cursor.execute("SELECT frame, type, date, COUNT(*) AS count_per_date FROM stock_items WHERE customer_id IS NULL GROUP BY frame, type, date ORDER BY frame, type, date;")
             rows = cursor.fetchall()
         except Error as e:
             messagebox.showerror("Database Error", str(e))
@@ -218,7 +198,7 @@ class AdminDashboard:
             if conn and conn.is_connected():
                 conn.close()
 
-        for trv in [self.tree, self.tree2]:
+        for trv in [self.tree]:
             trv.delete(*trv.get_children())
             for row in rows:
                 trv.insert("", "end", values=row)
@@ -228,7 +208,6 @@ class AdminDashboard:
         frame = self.entry_frame_add.get()
         type_ = self.entry_type_add.get()
         count = self.entry_count_add.get()
-        date = self.entry_date_add.get()
 
         if not (frame and type_ and count.isdigit()):
             messagebox.showerror("Input Error", "Please enter valid Frame, Type, and numeric Count.")
@@ -239,8 +218,7 @@ class AdminDashboard:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO Stocks (Frame, Type, Count, Date) VALUES (%s, %s, %s, %s)",
-                           (frame, type_, int(count), date))
+            cursor.callproc("add_stock_items", (frame, type_, int(count)))
             conn.commit()
             messagebox.showinfo("Success", "Stock added successfully.")
             self.fetch_data()
@@ -255,56 +233,7 @@ class AdminDashboard:
                 conn.close()
         del cursor,conn
 
-    def update_stock(self):
-        selected_item = self.tree2.selection()
-        if not selected_item:
-            messagebox.showerror("Selection Error", "Please select a record to update.")
-            return
-
-        frame = self.entry_frame_update.get()
-        type_ = self.entry_type_update.get()
-        count = self.entry_count_update.get()
-        date = self.entry_date_update.get()
-
-        if not (frame and type_ and count.isdigit()):
-            messagebox.showerror("Input Error", "Please enter valid Frame, Type, and numeric Count.")
-            return
-
-        item_values = self.tree2.item(selected_item)["values"]
-        stock_id = item_values[0]
-
-        conn = None
-        cursor = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("UPDATE Stocks SET Frame=%s, Type=%s, Count=%s, Date=%s WHERE No=%s",
-                           (frame, type_, int(count), date, stock_id))
-            conn.commit()
-            messagebox.showinfo("Success", "Stock updated successfully.")
-            self.fetch_data()
-        except Error as e:
-            messagebox.showerror("Database Error", str(e))
-        finally:
-            if cursor:
-                cursor.close()
-            if conn and conn.is_connected():
-                conn.close()
-        del conn,cursor
-
-    def on_row_selected(self, event):
-        selected_item = self.tree2.selection()
-        if not selected_item:
-            return
-
-        item_values = self.tree2.item(selected_item)["values"]
-        self.entry_frame_update.delete(0, tk.END)
-        self.entry_frame_update.insert(0, item_values[1])
-        self.entry_type_update.delete(0, tk.END)
-        self.entry_type_update.insert(0, item_values[2])
-        self.entry_count_update.delete(0, tk.END)
-        self.entry_count_update.insert(0, item_values[3])
-
+  
 
 # Entry Point
 def open_admin_dashboard():
