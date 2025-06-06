@@ -122,7 +122,7 @@ class AdminDashboard:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT frame, type, date, COUNT(*) AS count_per_date FROM stock_items WHERE customer_id IS NULL GROUP BY frame, type, date ORDER BY frame, type, date;")
+            cursor.execute("SELECT order_date, total_amount FROM customers")
             data = cursor.fetchall()
         except Error as e:
             messagebox.showerror("Database Error", str(e))
