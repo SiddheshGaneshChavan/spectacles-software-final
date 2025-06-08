@@ -122,7 +122,7 @@ class AdminDashboard:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT order_date, total_amount FROM customers")
+            cursor.execute("SELECT order_date, after_discount FROM customers")
             data = cursor.fetchall()
         except Error as e:
             messagebox.showerror("Database Error", str(e))
