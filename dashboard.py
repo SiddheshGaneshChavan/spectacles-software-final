@@ -21,8 +21,7 @@ class UserDashboard:
         self.master.destroy()
         gc.collect()
 
-    @staticmethod
-    def parse_float(value):
+    def parse_float(self,value):
         try:
             return float(value) if value else 0
         except ValueError:
@@ -181,7 +180,7 @@ class UserDashboard:
         self.balance_amt.delete(0, tk.END)
         self.balance_amt.insert(0, f"{balance:.2f}")
         self.balance_amt.config(state="readonly")
-    
+      
     def insert_data(self):
         try:
             conn=get_connection()
@@ -191,37 +190,39 @@ class UserDashboard:
             bill_no = self.transaction.get().strip()
             order_date = self.date_entry.get()
             dob = self.dob_entry.get()
-            unique_no = self.unique_combobox.get()
+            lens = self.lens_entry.get().strip()
+            remark = self.remark.get().strip()
+
+            unique_no = self.unique_combobox.get().strip()
+            unique_no_lens = None if lens else (unique_no if unique_no else None)
+
             total_amount = self.parse_float(self.total_amt.get())
             discount_amount = self.parse_float(self.after_discount.get())
             advance_amount = self.parse_float(self.advance_amt.get())
             balance_amount = self.parse_float(self.balance_amt.get())
-            lens = self.lens_entry.get().strip()
-            remark=self.remark.get().strip()
+
             lens_value = lens if lens else None
-            remark_value= remark if remark else None 
-            def parse_float(value):
-                try:
-                    return float(value) if value else 0
-                except ValueError:
-                    return 0
-            re_sph_dist = parse_float(self.entries[0][0].get())
-            re_cyl_dist = parse_float(self.entries[0][1].get())
-            re_axis_dist = parse_float(self.entries[0][2].get())
-            le_sph_dist = parse_float(self.entries[0][3].get())
-            le_cyl_dist = parse_float(self.entries[0][4].get())
-            le_axis_dist = parse_float(self.entries[0][5].get())
+            remark_value = remark if remark else None 
 
-            re_sph_read = parse_float(self.entries[1][0].get())
-            re_cyl_read = parse_float(self.entries[1][1].get())
-            re_axis_read = parse_float(self.entries[1][2].get())
-            le_sph_read = parse_float(self.entries[1][3].get())
-            le_cyl_read = parse_float(self.entries[1][4].get())
-            le_axis_read = parse_float(self.entries[1][5].get())
+            re_sph_dist = self.parse_float(self.entries[0][0].get())
+            re_cyl_dist = self.parse_float(self.entries[0][1].get())
+            re_axis_dist = self.parse_float(self.entries[0][2].get())
+            le_sph_dist = self.parse_float(self.entries[0][3].get())
+            le_cyl_dist = self.parse_float(self.entries[0][4].get())
+            le_axis_dist = self.parse_float(self.entries[0][5].get())
 
-            if not (name and phone_no and bill_no and order_date and dob and total_amount and unique_no and discount_amount and advance_amount and balance_amount):
+            re_sph_read = self.parse_float(self.entries[1][0].get())
+            re_cyl_read = self.parse_float(self.entries[1][1].get())
+            re_axis_read = self.parse_float(self.entries[1][2].get())
+            le_sph_read = self.parse_float(self.entries[1][3].get())
+            le_cyl_read = self.parse_float(self.entries[1][4].get())
+            le_axis_read = self.parse_float(self.entries[1][5].get())
+
+
+            if not (name and phone_no and bill_no and order_date and dob and total_amount is not None and discount_amount is not None and advance_amount is not None and balance_amount is not None):
                 messagebox.showerror("Error", "All fields must be filled!")
                 return
+            
             if not (phone_no.isdigit() and len(phone_no)==10):
                 messagebox.showerror("Invalid Phone Number", "Please enter a valid 10-digit phone number!")
                 return
@@ -238,10 +239,18 @@ class UserDashboard:
             if advance_amount > payable_amount:
                 messagebox.showerror("Invalid Advance", "Advance exceeds payable amount.")
                 return
+            
+            if unique_no_lens:
+                cursor.execute("SELECT COUNT(*) FROM stock_items WHERE unique_no = %s", (unique_no_lens,))
+                if cursor.fetchone()[0] == 0:
+                    messagebox.showerror("Stock Error", f"Selected stock unique_no '{unique_no_lens}' does not exist.")
+                    return
+
             cursor.execute('''INSERT INTO customers (name, phone_no, bill_no, order_date, dob, stock_unique_no,total_amount, after_discount, advance_amount, balance_amount, Lens, remark) 
-                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''', ( name, phone_no, bill_no, order_date, dob, unique_no, total_amount, discount_amount, advance_amount, balance_amount, lens_value, remark_value))
+                           VALUES (%s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s)''', ( name, phone_no, bill_no, order_date, dob, unique_no_lens, total_amount, discount_amount, advance_amount, balance_amount, lens_value, remark_value))
             customer_id = cursor.lastrowid
-            cursor.execute('''UPDATE stock_items SET customer_id = %s WHERE unique_no = %s''', (customer_id, unique_no))
+            if unique_no_lens:
+                cursor.execute('''UPDATE stock_items SET customer_id = %s WHERE unique_no = %s''', (customer_id, unique_no_lens))
             cursor.execute('''INSERT INTO eye_prescriptions (customer_id, eye_type, re_sph, re_cyl, re_axis, le_sph, le_cyl, le_axis)
             VALUES (%s, 'Distance', %s, %s, %s, %s, %s, %s)''', 
             (customer_id, re_sph_dist, re_cyl_dist, re_axis_dist, le_sph_dist, le_cyl_dist, le_axis_dist))
