@@ -349,12 +349,11 @@ class UserDashboard:
 
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT balance_amount, advance_amount FROM customers WHERE bill_no = %s", (selected_bill,))
+        cursor.execute("SELECT balance_amount FROM customers WHERE bill_no = %s", (selected_bill,))
         result = cursor.fetchone()
 
-        if result:
-            new_advance_amount = result[0] + result[1]  # balance_amt + advance_amt
-            cursor.execute("UPDATE customers SET advance_amount = %s, balance_amount = 0, payment='Paid' WHERE bill_no = %s", (new_advance_amount, selected_bill))
+        if result: 
+            cursor.execute("UPDATE customers SET balance_amount = 0, payment_status='Paid' WHERE bill_no = %s", (selected_bill,))
             messagebox.showinfo("Payment Update", f"Bill No {selected_bill} has been marked as Paid.")
             conn.commit()
 
@@ -363,6 +362,7 @@ class UserDashboard:
         self.balance_up_amt.config(state="normal")
         self.balance_up_amt.delete(0, tk.END)
         self.balance_up_amt.config(state="readonly")
+        self.refresh_combobox2()
         self.load_customers()
     
     def fetch_bill_numbers(self):
@@ -392,6 +392,32 @@ class UserDashboard:
             self.balance_up_amt.config(state="readonly")
         else:
             print(f"No balance found for Bill No {selected_bill}")
+    
+    def load_customers(self):
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT bill_no, name, phone_no, balance_amount FROM customers WHERE payment_status=%s", ('Pending',))
+            rows = cursor.fetchall()
+
+            self.tree.delete(*self.tree.get_children())
+            for row in rows:
+                self.tree.insert("", "end", values=row)
+        except Exception as e:
+            print(f"Error loading customers: {e}") 
+        finally:
+            try:
+                conn.close()
+            except:
+                pass
+        self.master.after(5000, self.load_customers)
+    
+    def refresh_combobox2(self):
+        self.frame_up_combobox["values"] = self.fetch_bill_numbers()
+        self.frame_up_combobox.set("")
+        self.balance_up_amt.config(state="normal")
+        self.balance_up_amt.delete(0, tk.END)
+        self.balance_up_amt.config(state="readonly")
 
     def update_customer_tab(self):
         tab2 = self.tab2
@@ -422,14 +448,6 @@ class UserDashboard:
         vsb.pack(side="right", fill="y")
         self.tree.pack(fill="both", expand=True)
         self.load_customers()
-
-    def logout(self):
-        self.master.destroy()
-        gc.collect()
-        import login
-        login.launch_login()
-
-
 def open_user_dashboard():
     root = tk.Tk()
     UserDashboard(root)
