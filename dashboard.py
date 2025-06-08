@@ -197,7 +197,8 @@ class UserDashboard:
             unique_no_lens = None if lens else (unique_no if unique_no else None)
 
             total_amount = self.parse_float(self.total_amt.get())
-            discount_amount = self.parse_float(self.after_discount.get())
+            discount_amount = self.parse_float(self.discount.get())
+            after_discount=self.parse_float(self.after_discount.get())
             advance_amount = self.parse_float(self.advance_amt.get())
             balance_amount = self.parse_float(self.balance_amt.get())
 
@@ -219,7 +220,7 @@ class UserDashboard:
             le_axis_read = self.parse_float(self.entries[1][5].get())
 
 
-            if not (name and phone_no and bill_no and order_date and dob and total_amount is not None and discount_amount is not None and advance_amount is not None and balance_amount is not None):
+            if not (name and phone_no and bill_no and order_date and dob and total_amount is not None and after_discount is not None and advance_amount is not None and balance_amount is not None):
                 messagebox.showerror("Error", "All fields must be filled!")
                 return
             
@@ -247,7 +248,7 @@ class UserDashboard:
                     return
 
             cursor.execute('''INSERT INTO customers (name, phone_no, bill_no, order_date, dob, stock_unique_no,total_amount, after_discount, advance_amount, balance_amount, Lens, remark) 
-                           VALUES (%s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s)''', ( name, phone_no, bill_no, order_date, dob, unique_no_lens, total_amount, discount_amount, advance_amount, balance_amount, lens_value, remark_value))
+                           VALUES (%s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s)''', ( name, phone_no, bill_no, order_date, dob, unique_no_lens, total_amount, after_discount, advance_amount, balance_amount, lens_value, remark_value))
             customer_id = cursor.lastrowid
             if unique_no_lens:
                 cursor.execute('''UPDATE stock_items SET customer_id = %s WHERE unique_no = %s''', (customer_id, unique_no_lens))
