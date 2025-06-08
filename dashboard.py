@@ -29,7 +29,9 @@ class UserDashboard:
 
     def setup_ui(self):
         self.master.columnconfigure(0, weight=1)
-        self.master.rowconfigure(1, weight=1)
+        self.master.rowconfigure(0, weight=0)  # Header
+        self.master.rowconfigure(1, weight=10)  # Notebook
+        self.master.rowconfigure(2, weight=1)
 
         tk.Label(self.master, text="Welcome to Omkar Optics Userdashboard", font=("Arial", 18)).grid(row=0, column=0, pady=10)
 
@@ -46,7 +48,6 @@ class UserDashboard:
         self.update_customer_tab()
         #self.details_spec_tab()
 
-        tk.Button(self.master, text="Logout", font=("Arial", 12), bg="#0085FF", fg="white", command=self.logout).grid(row=2, column=0, pady=10)
 
     def build_labeled_entry(self, parent, text, row, column, readonly=False):
         tk.Label(parent, text=text, font=("Arial", 12)).grid(row=row, column=column * 2, padx=10, pady=5, sticky="w")
@@ -201,6 +202,8 @@ class UserDashboard:
             after_discount=self.parse_float(self.after_discount.get())
             advance_amount = self.parse_float(self.advance_amt.get())
             balance_amount = self.parse_float(self.balance_amt.get())
+            payment_status = "Paid" if balance_amount == 0 else "Pending"
+
 
             lens_value = lens if lens else None
             remark_value = remark if remark else None 
@@ -247,8 +250,8 @@ class UserDashboard:
                     messagebox.showerror("Stock Error", f"Selected stock unique_no '{unique_no_lens}' does not exist.")
                     return
 
-            cursor.execute('''INSERT INTO customers (name, phone_no, bill_no, order_date, dob, stock_unique_no,total_amount, after_discount, advance_amount, balance_amount, Lens, remark) 
-                           VALUES (%s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s)''', ( name, phone_no, bill_no, order_date, dob, unique_no_lens, total_amount, after_discount, advance_amount, balance_amount, lens_value, remark_value))
+            cursor.execute('''INSERT INTO customers (name, phone_no, bill_no, order_date, dob, stock_unique_no,total_amount, after_discount, advance_amount, balance_amount, Lens, remark,payment_status) 
+                           VALUES (%s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s,%s)''', ( name, phone_no, bill_no, order_date, dob, unique_no_lens, total_amount, after_discount, advance_amount, balance_amount, lens_value, remark_value,payment_status))
             customer_id = cursor.lastrowid
             if unique_no_lens:
                 cursor.execute('''UPDATE stock_items SET customer_id = %s WHERE unique_no = %s''', (customer_id, unique_no_lens))
