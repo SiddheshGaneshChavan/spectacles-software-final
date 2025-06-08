@@ -193,7 +193,7 @@ class UserDashboard:
             dob = self.dob_entry.get()
             unique_no = self.unique_combobox.get()
             total_amount = self.parse_float(self.total_amt.get())
-            discount_amount = self.parse_float(self.discount.get())
+            discount_amount = self.parse_float(self.after_discount.get())
             advance_amount = self.parse_float(self.advance_amt.get())
             balance_amount = self.parse_float(self.balance_amt.get())
             lens = self.lens_entry.get().strip()
@@ -238,7 +238,7 @@ class UserDashboard:
             if advance_amount > payable_amount:
                 messagebox.showerror("Invalid Advance", "Advance exceeds payable amount.")
                 return
-            cursor.execute('''INSERT INTO customers (name, phone_no, bill_no, order_date, dob, stock_unique_no,total_amount, discount, advance_amount, balance_amount, Lens, remark) 
+            cursor.execute('''INSERT INTO customers (name, phone_no, bill_no, order_date, dob, stock_unique_no,total_amount, after_discount, advance_amount, balance_amount, Lens, remark) 
                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''', ( name, phone_no, bill_no, order_date, dob, unique_no, total_amount, discount_amount, advance_amount, balance_amount, lens_value, remark_value))
             customer_id = cursor.lastrowid
             cursor.execute('''UPDATE stock_items SET customer_id = %s WHERE unique_no = %s''', (customer_id, unique_no))
@@ -328,6 +328,87 @@ class UserDashboard:
         self.build_billing_fields(tab)
         self.remark= self.build_labeled_entry(tab, "Remark", 12, 0)
         tk.Button(tab, text="Insert Customer Data", font=("Arial", 12), bg="green", fg="white", command=self.insert_data).grid(row=13, column=0, columnspan=2, padx=10, pady=5)
+    
+    def update_balance(self):
+        selected_bill = self.frame_up_combobox.get()
+        if not selected_bill:
+            return
+
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT balance_amount, advance_amount FROM customers WHERE bill_no = %s", (selected_bill,))
+        result = cursor.fetchone()
+
+        if result:
+            new_advance_amount = result[0] + result[1]  # balance_amt + advance_amt
+            cursor.execute("UPDATE customers SET advance_amount = %s, balance_amount = 0, payment='Paid' WHERE bill_no = %s", (new_advance_amount, selected_bill))
+            messagebox.showinfo("Payment Update", f"Bill No {selected_bill} has been marked as Paid.")
+            conn.commit()
+
+        conn.close()
+        self.frame_up_combobox.set("")
+        self.balance_up_amt.config(state="normal")
+        self.balance_up_amt.delete(0, tk.END)
+        self.balance_up_amt.config(state="readonly")
+        self.load_customers()
+    
+    def fetch_bill_numbers(self):
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT bill_no FROM customers where balance_amount!=0")
+        result = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return result
+    
+    def on_bill_selected(self, event=None):
+        selected_bill = self.frame_up_combobox.get()
+        if not selected_bill:
+            return
+
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT balance_amount FROM customers WHERE bill_no = %s", (selected_bill,))
+        result = cursor.fetchone()
+        conn.close()
+
+        if result:
+            balance_amt = result[0]
+            self.balance_up_amt.config(state="normal")
+            self.balance_up_amt.delete(0, tk.END)
+            self.balance_up_amt.insert(0, str(balance_amt))
+            self.balance_up_amt.config(state="readonly")
+        else:
+            print(f"No balance found for Bill No {selected_bill}")
+
+    def update_customer_tab(self):
+        tab2 = self.tab2
+        tk.Label(tab2, text="Bill No:", font=("Arial", 12)).grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        bill_numbers = self.fetch_bill_numbers()
+        self.frame_up_combobox = ttk.Combobox(tab2,values=bill_numbers,font=("Arial", 12), width=28)
+        self.frame_up_combobox.grid(row=0, column=1, padx=10, pady=5)
+        self.frame_up_combobox.bind("<<ComboboxSelected>>", self.on_bill_selected)
+
+        tk.Button(tab2, text="Update Billno", font=("Arial", 12), bg="green", fg="white",command=self.update_balance).grid(row=0, column=3, columnspan=2, padx=10, pady=5)
+        tk.Button(tab2, text="Refresh Button for Billno", font=("Arial", 12), bg="blue", fg="white",command=self.refresh_combobox2).grid(row=0, column=5, columnspan=2, padx=10, pady=5)
+
+        self.balance_up_amt = self.build_labeled_entry(tab2, "Balance Amount", 1, 0, readonly=True)
+
+        tree_frame = tk.Frame(tab2)
+        tree_frame.grid(row=2, column=0, columnspan=6, padx=10, pady=10, sticky="nsew")
+        tab2.grid_rowconfigure(2, weight=1)
+        tab2.grid_columnconfigure(1, weight=1)
+
+        columns = ("billno", "name", "phone", "balance")
+        self.tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=10)
+        for col in columns: 
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=100, anchor=tk.CENTER)
+    
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=vsb.set)
+        vsb.pack(side="right", fill="y")
+        self.tree.pack(fill="both", expand=True)
+        self.load_customers()
 
     def logout(self):
         self.master.destroy()
