@@ -43,10 +43,10 @@ class UserDashboard:
         self.tab3 = tk.Frame(notebook)
         notebook.add(self.tab1, text="Customer Details")
         notebook.add(self.tab2, text="Update Details")
-        #notebook.add(self.tab3, text="Details of Spectacles")
+        notebook.add(self.tab3, text="Details of Spectacles")
         self.build_customer_tab()
         self.update_customer_tab()
-        #self.details_spec_tab()
+        self.details_spec_tab()
 
 
     def build_labeled_entry(self, parent, text, row, column, readonly=False):
@@ -448,6 +448,74 @@ class UserDashboard:
         vsb.pack(side="right", fill="y")
         self.tree.pack(fill="both", expand=True)
         self.load_customers()
+    
+    def search(self):
+        bill_no = self.bill_no_search.get().strip()
+        phone_no = self.phone_no_search.get().strip()
+        self.tree2.delete(*self.tree2.get_children())
+        if not bill_no and not phone_no:
+            messagebox.showwarning("Input Required", "Please enter at least one search field.")
+            return
+        
+        try:   
+            conn=get_connection()   
+            cursor = conn.cursor()
+            query = """SELECT 
+    c.customer_id,
+    c.name,
+    c.phone_no,
+    c.bill_no,
+    c.remark,
+    ep.eye_type,
+    ep.re_sph, ep.re_cyl, ep.re_axis,
+    ep.le_sph, ep.le_cyl, ep.le_axis
+FROM 
+    customers c
+JOIN 
+    eye_prescriptions ep ON c.customer_id = ep.customer_id
+WHERE 
+    c.phone_no = %s OR
+    c.bill_no =%s
+    """
+            cursor.execute(query, (phone_no, bill_no))
+            rows = cursor.fetchall()
+            for row in rows:
+                self.tree2.insert("", "end", values=row)
+            conn.close()
+        except Exception as e:
+            print(f"Error: {e}")
+
+    def details_spec_tab(self):
+        tab3 = self.tab3
+        form_frame = tk.Frame(tab3)
+        form_frame.grid(row=0, column=0, sticky="nw", padx=10, pady=10)
+
+        self.bill_no_search = self.build_labeled_entry(form_frame, "Bill No", 0, 0)
+        self.phone_no_search = self.build_labeled_entry(form_frame, "Phone No", 1, 0)
+
+        search_btn = tk.Button(
+        form_frame, text="Search", font=("Arial", 12), bg="green", fg="white", command=self.search
+        )
+        search_btn.grid(row=3, column=0, columnspan=2, pady=5, sticky="w")
+
+        tree_frame2 = tk.Frame(tab3)
+        tree_frame2.grid(row=1, column=0, columnspan=6, padx=10, pady=10, sticky="nsew")
+
+        tab3.grid_rowconfigure(1, weight=1)
+        tab3.grid_columnconfigure(0, weight=1)
+
+        columns = ("ID", "Name", "Phone", "Bill No","Remark", "Eye Type", "RE SPH", "RE CYL", "RE Axis", "LE SPH", "LE CYL", "LE Axis")
+        self.tree2 = ttk.Treeview(tree_frame2, columns=columns, show="headings", height=10)
+
+        for col in columns:
+            self.tree2.heading(col, text=col)
+            self.tree2.column(col, width=100, anchor="center")
+
+        vsb2 = ttk.Scrollbar(tree_frame2, orient="vertical", command=self.tree2.yview)
+        self.tree2.configure(yscrollcommand=vsb2.set)
+        vsb2.pack(side="right", fill="y")
+        self.tree2.pack(fill="both", expand=True)
+
 def open_user_dashboard():
     root = tk.Tk()
     UserDashboard(root)
