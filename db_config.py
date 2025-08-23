@@ -1,8 +1,6 @@
 import mysql.connector
 from utils import try_load_libmysql
 
-try_load_libmysql()
-
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
@@ -12,4 +10,5 @@ DB_CONFIG = {
 }
 
 def get_connection():
+    try_load_libmysql()
     return mysql.connector.connect(**DB_CONFIG)

@@ -1,9 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 from PIL import Image, ImageTk
-import os
-import sys
-import ctypes
 import logging
 from db_config import get_connection 
 from utils import verify_password,set_window_icon,resource_path
@@ -13,18 +10,6 @@ from mysql.connector import Error
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
-
-def try_load_libmysql():
-    if os.name != "nt":
-        return
-    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-    dll_path = os.path.join(base, "libmysql.dll")
-    if os.path.isfile(dll_path):
-        try:
-            ctypes.WinDLL(dll_path)
-            log.info("Loaded libmysql.dll from %s", dll_path)
-        except Exception as e:
-            log.warning("Failed to load libmysql.dll: %s", e)
 
 class LoginApp:
     def __init__(self, root):
@@ -38,7 +23,6 @@ class LoginApp:
         self.toggle_btn = None
         self.bg_img = None
 
-        try_load_libmysql()
         self.setup_ui()
 
     def setup_ui(self):
