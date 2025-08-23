@@ -114,7 +114,7 @@ class LoginApp:
                 messagebox.showinfo("Success", "Login successful. Redirecting...")
                 # Close the window and open dashboard
                 try:
-                    self.root.destroy()
+                    self.root.withdraw()
                 except Exception:
                     pass
 
