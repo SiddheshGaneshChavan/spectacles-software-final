@@ -5,11 +5,13 @@ from datetime import date
 from db_config import get_connection
 from mysql.connector import IntegrityError,InterfaceError,Error
 import gc
+from utils import set_window_icon
 
 class UserDashboard:
     def __init__(self, master):
         self.master = master
         self.master.title("User Dashboard")
+        set_window_icon(self.master)
         self.master.attributes('-fullscreen', True)
         self.master.bind("<Escape>", lambda e: self.master.attributes("-fullscreen", False))
         self.master.protocol("WM_DELETE_WINDOW", self.close_app)

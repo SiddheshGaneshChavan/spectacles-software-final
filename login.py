@@ -5,18 +5,14 @@ import os
 import sys
 import ctypes
 import logging
-from db_config import get_connection
-from utils import verify_password
+from db_config import get_connection 
+from utils import verify_password,set_window_icon,resource_path
 from dashboard import open_user_dashboard
 from admin_dashboard import open_admin_dashboard
 from mysql.connector import Error
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
-
-def resource_path(relative_path):
-    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, relative_path)
 
 def try_load_libmysql():
     if os.name != "nt":
@@ -36,14 +32,7 @@ class LoginApp:
         self.root.title("Omkar Optics Login Page")
         self.root.configure(bg="white")
         self.root.resizable(False, False)
-
-        try:
-            icon_path = resource_path("sunglasses.ico")
-            if os.path.isfile(icon_path):
-                self.root.iconbitmap(icon_path)
-        except Exception as e:
-            log.warning("Could not set window icon: %s", e)
-
+        set_window_icon(self.root)
         self.username_entry = None
         self.password_entry = None
         self.toggle_btn = None

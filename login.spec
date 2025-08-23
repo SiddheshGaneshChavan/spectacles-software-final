@@ -1,15 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_data_files
-
-datas = [('Bg1.png', '.'), ('sunglasses.ico', '.')]
-datas += collect_data_files('matplotlib')
 
 
 a = Analysis(
     ['login.py'],
     pathex=[],
     binaries=[('C:\\Program Files\\MySQL\\MySQL Server 8.0\\lib\\libmysql.dll', '.')],
-    datas=datas,
+    datas=[('Bg1.png', '.'), ('sunglasses.ico', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

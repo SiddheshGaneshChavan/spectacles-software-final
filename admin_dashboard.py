@@ -6,11 +6,13 @@ from db_config import get_connection
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import mplcursors
+from utils import set_window_icon
 from matplotlib.dates import DateFormatter
 from collections import defaultdict
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from dateutil.relativedelta import relativedelta
 import logging
+
 logging.getLogger('mysql.connector').setLevel(logging.WARNING)
 
 current_date = datetime.today().strftime('%Y-%m-%d')
@@ -23,6 +25,7 @@ class AdminDashboard:
         self.master.configure(bg='#f0f0f0')
         self.master.protocol("WM_DELETE_WINDOW", self.close_app)
         self.create_styles()
+        set_window_icon(self.master)
         self.create_widgets()
         self.fetch_data()
         ttk.Button(self.master, text="Back to Login", command=self.back_to_login).pack(pady=10)
@@ -101,7 +104,7 @@ class AdminDashboard:
             messagebox.showinfo("Info", "No monthly sales data found.")
             return
 
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(10, 4))
         keys = sorted(monthly_sales.keys())
         values = [monthly_sales[k] for k in keys]
         dates = [datetime.strptime(k, "%Y-%m") for k in keys]
