@@ -1,4 +1,7 @@
 import mysql.connector
+from utils import try_load_libmysql
+
+try_load_libmysql()
 
 DB_CONFIG = {
     'host': 'localhost',

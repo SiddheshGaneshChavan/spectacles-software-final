@@ -2,6 +2,7 @@ import bcrypt
 import os
 import sys
 import logging
+import ctypes
 
 log = logging.getLogger(__name__)
 
@@ -21,3 +22,19 @@ def set_window_icon(root, icon_filename="sunglasses.ico"):
             log.warning("Icon file not found: %s", icon_path)
     except Exception as e:
         log.warning("Could not set window icon: %s", e)
+
+def try_load_libmysql():
+    if os.name != "nt":
+        return 
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    dll_path = os.path.join(base, "libmysql.dll")
+
+    if os.path.isfile(dll_path):
+        try:
+            ctypes.WinDLL(dll_path)
+            log.info("Loaded libmysql.dll from %s", dll_path)
+        except Exception as e:
+            log.warning("Failed to load libmysql.dll: %s", e)
+    else:
+        log.warning("libmysql.dll not found at %s", dll_path)
+
