@@ -182,7 +182,6 @@ def launch_login():
     app = LoginApp(root)
     root.mainloop()
 
-# Splash screen with progress bar
 def show_splash_and_launch_login():
     splash_root = tk.Tk()
     splash_root.overrideredirect(True)
