@@ -101,7 +101,7 @@ class AdminDashboard:
             messagebox.showinfo("Info", "No monthly sales data found.")
             return
 
-        fig, ax = plt.subplots(figsize=(8, 4))
+        fig, ax = plt.subplots(figsize=(10, 6))
         keys = sorted(monthly_sales.keys())
         values = [monthly_sales[k] for k in keys]
         dates = [datetime.strptime(k, "%Y-%m") for k in keys]
