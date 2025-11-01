@@ -25,7 +25,8 @@ def set_window_icon(root, icon_filename="sunglasses.ico"):
 
 def try_load_libmysql():
     if os.name != "nt":
-        return 
+        return  
+
     base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
     dll_path = os.path.join(base, "libmysql.dll")
 

@@ -10,5 +10,5 @@ DB_CONFIG = {
 }
 
 def get_connection():
-    try_load_libmysql()
+    try_load_libmysql
     return mysql.connector.connect(**DB_CONFIG)

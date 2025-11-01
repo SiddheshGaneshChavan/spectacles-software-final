@@ -107,14 +107,13 @@ class LoginApp:
                 messagebox.showerror("Account Locked", "Too many failed login attempts. Please contact admin.")
                 return
 
-            # Use stored_password variable (not user[0]) for clarity
+
             if verify_password(password, stored_password):
                 cursor.execute("UPDATE users SET failed_attempts = 0, last_failed_login = NULL WHERE username = %s", (username,))
                 conn.commit()
                 messagebox.showinfo("Success", "Login successful. Redirecting...")
-                # Close the window and open dashboard
                 try:
-                    self.root.withdraw()
+                    self.root.destroy()
                 except Exception:
                     pass
 
