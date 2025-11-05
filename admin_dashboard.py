@@ -28,7 +28,29 @@ class AdminDashboard:
         set_window_icon(self.master)
         self.create_widgets()
         self.fetch_data()
+        self.style_treeview()
         ttk.Button(self.master, text="Back to Login", command=self.back_to_login).pack(pady=10)
+
+    def style_treeview(self):
+        style = ttk.Style()
+        style.theme_use("clam")
+
+        style.configure("Treeview",
+                        background="white",
+                        foreground="black",
+                        rowheight=28,
+                        fieldbackground="white",
+                        font=("Calibri", 12))
+
+        style.configure("Treeview.Heading",
+                        background="#2b5797",
+                        foreground="white",
+                        font=("Calibri", 13, "bold"))
+
+        # Highlight selected row
+        style.map("Treeview",
+                background=[("selected", "#4a90e2")],
+                foreground=[("selected", "white")])
 
     def create_styles(self):
         style = ttk.Style()
@@ -196,23 +218,61 @@ class AdminDashboard:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT frame, type, date, COUNT(*) AS count_per_date "
-                "FROM stock_items WHERE customer_id IS NULL "
-                "GROUP BY frame, type, date ORDER BY frame, type, date;"
-            )
-            rows = cursor.fetchall()
+
+            cursor.execute("""
+                SELECT frame, type, date, COUNT(*) AS count_per_date
+                FROM stock_items
+                WHERE customer_id IS NULL
+                GROUP BY frame, type, date
+                ORDER BY frame, type, date;
+            """)
+            summary_rows = cursor.fetchall()
+
+            cursor.execute("""
+                SELECT unique_no, frame, type, date
+                FROM stock_items
+                WHERE customer_id IS NULL
+                ORDER BY frame, type, date, unique_no;
+            """)
+            detail_rows = cursor.fetchall()
+
         except Error as e:
             messagebox.showerror("Database Error", str(e))
             return
         finally:
-            if 'cursor' in locals() and cursor:
+            if cursor:
                 cursor.close()
-            if 'conn' in locals() and conn and conn.is_connected():
+            if conn and conn.is_connected():
                 conn.close()
+
+        # Clear table
         self.tree.delete(*self.tree.get_children())
-        for row in rows:
-            self.tree.insert("", "end", values=row)
+
+        parent_nodes = {}
+
+        # Insert parent rows (BOLD)
+        for frame, type_, date_, count in summary_rows:
+            parent_id = self.tree.insert(
+                "", "end",
+                values=(frame, type_, date_, count),
+                tags=("parent_row",)
+            )
+            parent_nodes[(frame, type_, date_)] = parent_id
+
+        # Insert child rows (Available stock)
+        for unique_no, frame, type_, date_ in detail_rows:
+            key = (frame, type_, date_)
+            if key in parent_nodes:
+                self.tree.insert(
+                    parent_nodes[key],
+                    "end",
+                    values=("-",unique_no, "Available",""),
+                    tags=("child_row",)
+                )
+
+        # Apply row styles
+        self.tree.tag_configure("parent_row", background="#dbe5f1", font=("Calibri", 12, "bold"))
+        self.tree.tag_configure("child_row", background="#f7f7f7")
 
     def add_stock(self):
         frame = self.entry_frame_add.get()

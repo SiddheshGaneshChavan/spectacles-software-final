@@ -16,9 +16,31 @@ class UserDashboard:
         self.master.bind("<Escape>", lambda e: self.master.attributes("-fullscreen", False))
         self.master.protocol("WM_DELETE_WINDOW", self.close_app)
         self.frame_cache = None
+        self.style_treeview()
         self.type_cache = {}
         self.setup_ui()
-    
+        
+    def style_treeview(self):
+        style = ttk.Style()
+        style.theme_use("clam")
+
+        style.configure("Treeview",
+                        background="white",
+                        foreground="black",
+                        rowheight=28,
+                        fieldbackground="white",
+                        font=("Calibri", 12))
+
+        style.configure("Treeview.Heading",
+                        background="#2b5797",
+                        foreground="white",
+                        font=("Calibri", 13, "bold"))
+
+        # Highlight selected row
+        style.map("Treeview",
+                background=[("selected", "#4a90e2")],
+                foreground=[("selected", "white")])
+
     def close_app(self):
         self.master.destroy()
         gc.collect()
