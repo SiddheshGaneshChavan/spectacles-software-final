@@ -1,1 +1,1 @@
-mysql -u root -p --port=3360 < "C:\Users\TUFF\Desktop\OmkarOptic.sql"
+python -m PyInstaller --onefile --windowed --add-data "Bg1.png;." --add-data "sunglasses.ico;." --add-binary "C:\Program Files\MySQL\MySQL Server 8.0\lib\libmysql.dll;." --add-data "C:\Users\TUFF\AppData\Roaming\Python\Python312\site-packages\tkcalendar;tkcalendar" --icon="sunglasses.ico" login.py
