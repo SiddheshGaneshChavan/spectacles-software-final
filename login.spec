@@ -5,7 +5,7 @@ a = Analysis(
     ['login.py'],
     pathex=[],
     binaries=[('C:\\Program Files\\MySQL\\MySQL Server 8.0\\lib\\libmysql.dll', '.')],
-    datas=[('Bg1.png', '.'), ('sunglasses.ico', '.')],
+    datas=[('Bg1.png', '.'), ('sunglasses.ico', '.'), ('C:\\Users\\TUFF\\AppData\\Roaming\\Python\\Python312\\site-packages\\tkcalendar', 'tkcalendar')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
