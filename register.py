@@ -7,7 +7,7 @@ from mysql.connector import connect, Error
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-    'password': 'root',
+    'password': 'root@123',
     'database': 'omkaroptics',
 'port': 3360
 }
