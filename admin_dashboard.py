@@ -21,7 +21,7 @@ class AdminDashboard:
     def __init__(self, master):
         self.master = master
         self.master.title("Stock Management")
-        self.master.geometry("750x450")
+        self.master.geometry("750x550")
         self.master.configure(bg='#f0f0f0')
         self.master.protocol("WM_DELETE_WINDOW", self.close_app)
         self.create_styles()
