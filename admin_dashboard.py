@@ -12,6 +12,7 @@ from collections import defaultdict
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from dateutil.relativedelta import relativedelta
 import logging
+from treeview_style import apply_treeview_style, apply_common_styles
 
 logging.getLogger('mysql.connector').setLevel(logging.WARNING)
 
@@ -24,11 +25,11 @@ class AdminDashboard:
         self.master.geometry("750x550")
         self.master.configure(bg='#f0f0f0')
         self.master.protocol("WM_DELETE_WINDOW", self.close_app)
-        self.create_styles()
+        apply_treeview_style()
+        apply_common_styles()
         set_window_icon(self.master)
         self.create_widgets()
         self.fetch_data()
-        self.style_treeview()
         ttk.Button(self.master, text="Back to Login", command=self.back_to_login).pack(pady=10)
 
     def style_treeview(self):

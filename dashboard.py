@@ -5,6 +5,7 @@ from datetime import date
 from db_config import get_connection
 from mysql.connector import IntegrityError,InterfaceError,Error
 import gc
+from treeview_style import apply_treeview_style, apply_common_styles
 from utils import set_window_icon
 
 class UserDashboard:
@@ -12,36 +13,20 @@ class UserDashboard:
         self.master = master
         self.master.title("User Dashboard")
         set_window_icon(self.master)
-        self.master.attributes('-fullscreen', True)
-        self.master.bind("<Escape>", lambda e: self.master.attributes("-fullscreen", False))
+        self.master.geometry("1200x900")
         self.master.protocol("WM_DELETE_WINDOW", self.close_app)
         self.frame_cache = None
-        self.style_treeview()
+        apply_treeview_style()
+        apply_common_styles()
         self.type_cache = {}
         self.setup_ui()
         
-    def style_treeview(self):
-        style = ttk.Style()
-        style.theme_use("clam")
-
-        style.configure("Treeview",
-                        background="white",
-                        foreground="black",
-                        rowheight=28,
-                        fieldbackground="white",
-                        font=("Calibri", 12))
-
-        style.configure("Treeview.Heading",
-                        background="#2b5797",
-                        foreground="white",
-                        font=("Calibri", 13, "bold"))
-
-        # Highlight selected row
-        style.map("Treeview",
-                background=[("selected", "#4a90e2")],
-                foreground=[("selected", "white")])
-
     def close_app(self):
+        try:
+            if hasattr(self, "after_id"):
+                self.master.after_cancel(self.after_id)
+        except:
+            pass
         self.master.destroy()
         gc.collect()
 
@@ -71,7 +56,25 @@ class UserDashboard:
         self.build_customer_tab()
         self.update_customer_tab()
         self.details_spec_tab()
+        back_btn = tk.Button(
+        self.master,
+        text="Back to Login",
+        font=("Arial", 12),
+        bg="blue",
+        fg="white",
+        command=self.back_to_login
+    )
+        back_btn.grid(row=2, column=0, pady=10)
 
+    def back_to_login(self):
+        try:
+            if hasattr(self, "after_id"):
+                self.master.after_cancel(self.after_id)
+        except:
+            pass
+        self.master.destroy()
+        from login import launch_login
+        launch_login()
 
     def build_labeled_entry(self, parent, text, row, column, readonly=False):
         tk.Label(parent, text=text, font=("Arial", 12)).grid(row=row, column=column * 2, padx=10, pady=5, sticky="w")
@@ -387,7 +390,7 @@ class UserDashboard:
         self.balance_up_amt.delete(0, tk.END)
         self.balance_up_amt.config(state="readonly")
         self.refresh_combobox2()
-        self.load_customers()
+        self.master.after(2000, self.load_customers)
     
     def fetch_bill_numbers(self):
         conn = get_connection()
@@ -434,7 +437,8 @@ class UserDashboard:
                 conn.close()
             except:
                 pass
-        self.master.after(5000, self.load_customers)
+        if self.master.winfo_exists():
+            self.after_id=self.master.after(5000, self.load_customers)
     
     def refresh_combobox2(self):
         self.frame_up_combobox["values"] = self.fetch_bill_numbers()
